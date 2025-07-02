@@ -62,7 +62,8 @@ class ConversationService {
           status,
           last_message,
           last_message_at,
-          unread_count
+          unread_count,
+          property:properties(*)
         `)
         .order('last_message_at', { ascending: false });
 

@@ -25,8 +25,6 @@ class ConversationAnalysisService {
    */
   async analyzeConversation(
     messages: Message[],
-    conversationId?: string,
-    apartmentId?: string,
     customInstructions?: string
   ): Promise<ConversationAnalysis> {
     
@@ -67,8 +65,6 @@ class ConversationAnalysisService {
    */
   async generateAIResponse(
     messages: Message[],
-    conversationId?: string,
-    apartmentId?: string,
     customInstructions?: string
   ): Promise<{ response: string; confidence: number }> {
     

@@ -15,7 +15,7 @@ import TestConversation from './pages/TestConversation';
 import EmergencyCases from './pages/EmergencyCases';
 import NotificationTester from './components/NotificationTester';
 import Layout from './components/Layout/Layout';
-import WhatsAppConversations from './components/WhatsAppConversations';
+
 import { supabase } from './lib/supabase';
 import { Session } from '@supabase/supabase-js';
 import { ToastContainer } from 'react-toastify';

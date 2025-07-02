@@ -11,7 +11,7 @@ interface Message {
 
 interface ConversationAnalysis {
   needsAttention: boolean;
-  conversationTag: 'Client mécontent' | 'IA incertaine' | 'Intervention hôte requise' | 'Urgence critique' | 'Escalade comportementale' | null;
+  conversationTag: 'Client mécontent' | 'IA incertaine' | 'Intervention hôte requise' | 'Urgence critique' | 'Escalade comportementale' | 'Réponse connue' | null;
   confidence: number;
   explanation: string;
   recommendedAction: string;
@@ -25,8 +25,6 @@ class EmergencyAPIService {
    */
   async analyzeConversation(
     messages: Message[],
-    conversationId?: string,
-    apartmentId?: string,
     customInstructions?: string
   ): Promise<ConversationAnalysis> {
     
@@ -67,7 +65,6 @@ class EmergencyAPIService {
    */
   async generateAIResponse(
     messages: Message[],
-    propertyInfo?: any,
     customInstructions?: string
   ): Promise<{ response: string; confidence: number }> {
     
@@ -140,7 +137,7 @@ Réponds uniquement par un JSON avec cette structure exacte :
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${await this._getOpenAIKey()}`
+        'Authorization': `Bearer ${(import.meta as any)?.env?.VITE_OPENAI_API_KEY || 'sk-test-key'}`
       },
       body: JSON.stringify({
         model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
@@ -162,87 +159,7 @@ Réponds uniquement par un JSON avec cette structure exacte :
     return data.choices[0]?.message?.content || 'Désolé, je ne peux pas répondre pour le moment.';
   }
 
-  /**
-   * Appel au service OpenAI local
-   */
-  private async _callLocalOpenAI(messages: Message[], customInstructions: string, type: 'response' | 'analysis'): Promise<string> {
-    const conversationHistory = messages.map(msg => {
-      return `${msg.direction === 'inbound' ? 'Guest' : 'Host'}: ${msg.content}`;
-    }).join('\n');
 
-    let systemPrompt = '';
-    if (type === 'response') {
-      systemPrompt = `Tu es un assistant virtuel pour un logement Airbnb. Réponds aux questions des invités de manière personnalisée et chaleureuse.
-
-Instructions spécifiques pour ce logement :
-${customInstructions}
-
-Règles importantes :
-- Réponds uniquement en français
-- Sois chaleureux et professionnel
-- Utilise les informations spécifiques du logement si disponibles
-- Si tu n'as pas l'information, propose de contacter l'hôte directement
-- Reste dans le contexte Airbnb/location saisonnière
-
-Conversation actuelle :
-${conversationHistory}
-
-Réponds au dernier message de l'invité de manière appropriée :`;
-    } else {
-      systemPrompt = `Tu es un système d'analyse de conversations pour des communications Airbnb. Analyse le message suivant et identifie le type de situation nécessitant une attention particulière.
-
-Conversation :
-${conversationHistory}
-
-TYPES DE TAGS DE CONVERSATION :
-- "Client mécontent" : Client exprimant une insatisfaction, plainte ou frustration
-- "IA incertaine" : Question complexe où l'IA n'est pas sûre de sa réponse
-- "Intervention hôte requise" : Check-in/check-out, problèmes techniques spécifiques, demandes personnalisées
-- "Urgence critique" : Problème de sécurité, panne grave, situation d'urgence réelle
-- "Escalade comportementale" : Ton agressif, menaces, comportement inapproprié
-- "Réponse connue" : Question standard dont l'IA connaît la réponse
-
-Réponds uniquement par un objet JSON avec cette structure exacte :
-{
-  "needsAttention": boolean,
-  "conversationTag": "Client mécontent" | "IA incertaine" | "Intervention hôte requise" | "Urgence critique" | "Escalade comportementale" | "Réponse connue" | null,
-  "confidence": number (0-1),
-  "explanation": "explication en français détaillant pourquoi ce tag a été choisi",
-  "recommendedAction": "suggestion d'action pour l'hôte"
-}`;
-    }
-
-    // Utiliser toujours le service local pour l'analyse OpenAI
-    const baseUrl = 'http://localhost:8080';
-    
-    console.log(`[EmergencyAPI] Utilisation du service OpenAI: ${baseUrl}/api/analyze-emergency`);
-    
-    const response = await fetch(`${baseUrl}/api/analyze-emergency`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        prompt: systemPrompt,
-        message: messages[messages.length - 1]?.content || 'Bonjour',
-        type: type
-      })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('Erreur service local:', response.status, errorData);
-      throw new Error(`Service local Error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    
-    if (type === 'analysis') {
-      return data.analysis || '{}';
-    } else {
-      return data.response || 'Désolé, je ne peux pas répondre pour le moment.';
-    }
-  }
 
   /**
    * Appel direct à l'API OpenAI GPT-4o (legacy)
@@ -291,7 +208,7 @@ Réponds uniquement par un JSON avec cette structure exacte :
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY || process.env.OPENAI_API_KEY}`
+        'Authorization': `Bearer ${(import.meta as any)?.env?.VITE_OPENAI_API_KEY || 'sk-test-key'}`
       },
       body: JSON.stringify({
         model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
@@ -421,89 +338,7 @@ Réponds uniquement par un JSON avec cette structure exacte :
     };
   }
 
-  /**
-   * Analyse basée sur mots-clés pour détecter les urgences (legacy)
-   */
-  private _analyzeMessageContent(content: string): ConversationAnalysis {
-    // Mots-clés pour urgences critiques
-    const criticalKeywords = [
-      'urgent', 'fuite', 'inondation', 'panne', 'cassé', 
-      'plus d\'eau', 'plus de chauffage', 'incendie', 'urgence', 
-      'inondé', 'danger', 'secours', 'aide'
-    ];
-    
-    // Mots-clés pour plaintes
-    const complaintKeywords = [
-      'déçu', 'mécontent', 'sale', 'pas propre', 'problème', 
-      'pas satisfait', 'mauvais', 'décevant', 'nul', 'horrible'
-    ];
-    
-    // Mots-clés pour escalade comportementale
-    const behavioralKeywords = [
-      'inacceptable', 'remboursement', 'avis négatif', 'scandaleux', 
-      'arnaque', 'menace', 'avocat', 'pourri', 'justice'
-    ];
-    
-    // Mots-clés positifs
-    const positiveKeywords = [
-      'merci', 'parfait', 'excellent', 'satisfait', 'bien', 
-      'super', 'impeccable', 'génial', 'formidable'
-    ];
 
-    if (criticalKeywords.some(keyword => content.includes(keyword))) {
-      return {
-        isEmergency: true,
-        emergencyType: 'Urgence critique',
-        confidence: 0.9,
-        unknownResponse: false,
-        explanation: 'Détection d\'urgence critique basée sur des indicateurs nécessitant une intervention immédiate.',
-        suggestedResponse: 'Nous prenons votre situation très au sérieux et allons intervenir immédiatement. Pouvez-vous nous donner plus de détails pour résoudre ce problème rapidement ?'
-      };
-    }
-
-    if (behavioralKeywords.some(keyword => content.includes(keyword))) {
-      return {
-        isEmergency: true,
-        emergencyType: 'Escalade comportementale',
-        confidence: 0.85,
-        unknownResponse: false,
-        explanation: 'Détection d\'escalade comportementale nécessitant une intervention humaine prioritaire.',
-        suggestedResponse: 'Nous comprenons votre frustration et souhaitons résoudre cette situation rapidement. Permettez-nous de vous contacter directement pour trouver une solution.'
-      };
-    }
-
-    if (complaintKeywords.some(keyword => content.includes(keyword))) {
-      return {
-        isEmergency: true,
-        emergencyType: 'Client mécontent',
-        confidence: 0.8,
-        unknownResponse: false,
-        explanation: 'Détection de mécontentement client nécessitant une attention particulière.',
-        suggestedResponse: 'Nous sommes désolés pour cette expérience. Pouvez-vous nous expliquer le problème en détail pour que nous puissions le résoudre ?'
-      };
-    }
-
-    if (positiveKeywords.some(keyword => content.includes(keyword))) {
-      return {
-        isEmergency: false,
-        emergencyType: 'Réponse connue',
-        confidence: 0.9,
-        unknownResponse: false,
-        explanation: 'Message positif ne nécessitant pas d\'intervention urgente.',
-        suggestedResponse: 'Merci beaucoup pour votre retour positif ! Nous sommes ravis que votre séjour se soit bien passé.'
-      };
-    }
-
-    // Par défaut : analyse incertaine
-    return {
-      isEmergency: true,
-      emergencyType: 'IA incertaine',
-      confidence: 0.6,
-      unknownResponse: true,
-      explanation: 'Le système ne peut pas déterminer avec certitude la nature de ce message. Une intervention humaine pourrait être nécessaire.',
-      suggestedResponse: 'Merci pour votre message. Un membre de notre équipe va examiner votre demande et vous répondre rapidement.'
-    };
-  }
 
   /**
    * Génération de réponses contextuelles
@@ -553,4 +388,4 @@ Réponds uniquement par un JSON avec cette structure exacte :
 
 // Instance singleton
 export const emergencyAPI = new EmergencyAPIService();
-export type { EmergencyAnalysis, Message };
+export type { ConversationAnalysis, Message };

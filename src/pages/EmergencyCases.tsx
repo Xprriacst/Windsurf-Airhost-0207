@@ -12,7 +12,6 @@ import {
 import {
   Warning,
   Error,
-  Info,
   Build,
   CheckCircle,
   Psychology

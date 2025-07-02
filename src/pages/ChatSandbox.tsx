@@ -238,8 +238,6 @@ NUMEROS UTILES:
         
         const convAnalysis = await conversationAnalysis.analyzeConversation(
           messagesForAnalysis,
-          requestData.conversationId,
-          requestData.apartmentId,
           requestData.customInstructions
         );
         
@@ -404,7 +402,7 @@ NUMEROS UTILES:
         timestamp: msg.created_at
       }));
       
-      const data = await emergencyAPI.generateAIResponse(messagesForAI, property, payload.customInstructions);
+      const data = await emergencyAPI.generateAIResponse(messagesForAI, payload.customInstructions);
       
       // Ajouter la réponse de l'IA
       const aiResponse: Message = {

@@ -32,25 +32,6 @@ interface Message {
   type: string;
 }
 
-const getTagColor = (tag: string) => {
-  switch (tag) {
-    case 'Urgence critique':
-      return 'error';
-    case 'Client mécontent':
-      return 'warning';
-    case 'Intervention hôte requise':
-      return 'info';
-    case 'IA incertaine':
-      return 'secondary';
-    case 'Escalade comportementale':
-      return 'error';
-    case 'Réponse connue':
-      return 'success';
-    default:
-      return 'default';
-  }
-};
-
 const ConversationsPage: React.FC = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<{ [key: string]: Message[] }>({});

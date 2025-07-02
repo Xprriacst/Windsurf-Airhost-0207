@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
+  Stack,
   Card,
   CardContent,
   Typography,
@@ -55,6 +56,7 @@ export const WhatsAppSettings: React.FC<WhatsAppSettingsProps> = ({ hostId }) =>
         }
       } else {
         const defaultConfig = {
+          id: '',
           host_id: hostId,
           phone_number_id: '',
           access_token: '',
@@ -63,7 +65,9 @@ export const WhatsAppSettings: React.FC<WhatsAppSettingsProps> = ({ hostId }) =>
           is_active: false,
           send_welcome_message: false,
           welcome_template: 'hello_world',
-          available_templates: []
+          available_templates: [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         };
         setConfig(defaultConfig);
       }
@@ -186,7 +190,7 @@ export const WhatsAppSettings: React.FC<WhatsAppSettingsProps> = ({ hostId }) =>
   if (!config) return null;
 
   return (
-    <Box spacing={3}>
+    <Stack spacing={3}>
       <Card>
         <CardContent>
           <Typography variant="h6" gutterBottom>
@@ -199,7 +203,7 @@ export const WhatsAppSettings: React.FC<WhatsAppSettingsProps> = ({ hostId }) =>
             </Alert>
           )}
 
-          <Box spacing={3}>
+          <Stack spacing={3}>
             <TextField
               fullWidth
               label="ID du numéro de téléphone"
@@ -346,10 +350,10 @@ export const WhatsAppSettings: React.FC<WhatsAppSettingsProps> = ({ hostId }) =>
                 {saving ? 'Sauvegarde...' : 'Sauvegarder la configuration'}
               </Button>
             </Box>
-          </Box>
+          </Stack>
         </CardContent>
       </Card>
-    </Box>
+    </Stack>
   );
 };
 

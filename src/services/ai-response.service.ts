@@ -9,13 +9,6 @@ const FALLBACK_RESPONSES: Record<string, string[]> = {
   // On peut ajouter d'autres IDs d'appartements avec des réponses spécifiques
 };
 
-// Interface pour les réponses de l'API
-interface AIResponseData {
-  response: string;
-  confidence: number;
-  isUncertain?: boolean;
-}
-
 export class AIResponseService {
   static async generateResponse(apartmentId: string, conversationId: string, customInstructions?: string) {
     console.log('[AIResponseService] Début de generateResponse avec:', { apartmentId, conversationId });
@@ -36,9 +29,6 @@ export class AIResponseService {
       if (error) {
         console.error('[AIResponseService] Erreur récupération messages:', error);
         // Fallback avec message générique si erreur
-        const messages = [
-          { content: 'Message générique pour génération de réponse', direction: 'inbound' as const }
-        ];
       } else {
         console.log('[AIResponseService] Messages récupérés:', messagesData);
       }
@@ -55,8 +45,6 @@ export class AIResponseService {
       // Générer une réponse IA en utilisant notre service
       const aiResponse = await conversationAnalysis.generateAIResponse(
         messages,
-        conversationId,
-        apartmentId,
         customInstructions || ''
       );
       
@@ -68,7 +56,7 @@ export class AIResponseService {
         
         // Notification de l'incertitude au service d'analyse
         try {
-          await this.notifyUncertainty(conversationId);
+          await this.notifyUncertainty();
         } catch (notifyError) {
           console.error('[AIResponseService] Erreur lors de la notification d\'incertitude:', notifyError);
         }
@@ -91,7 +79,7 @@ export class AIResponseService {
    * Notifie le service d'analyse de conversation qu'une incertitude a été détectée
    * @param conversationId L'ID de la conversation concernée
    */
-  private static async notifyUncertainty(conversationId: string) {
+  private static async notifyUncertainty() {
     console.log('[AIResponseService] Notification d\'incertitude au service d\'analyse de conversation');
     
     try {
@@ -100,7 +88,7 @@ export class AIResponseService {
       
       // Analyser la situation d'incertitude
       const incertaintyMessages = [{ content: 'Incertitude détectée dans la réponse IA', direction: 'inbound' as const }];
-      const analysis = await conversationAnalysis.analyzeConversation(incertaintyMessages, conversationId, '');
+      const analysis = await conversationAnalysis.analyzeConversation(incertaintyMessages, '');
       
       console.log('[AIResponseService] Analyse d\'incertitude:', analysis.conversationTag);
       console.log('[AIResponseService] Tag assigné:', analysis.conversationTag);
