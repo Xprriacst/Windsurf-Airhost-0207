@@ -51,7 +51,7 @@ class FirebaseNotificationService {
       console.log('[FIREBASE DEBUG] Instance de développement détectée, utilisation de la configuration locale');
       // Configuration Firebase directe pour l'environnement de développement
       this.firebaseConfig = {
-        apiKey: "AIzaSyDXQJ9fqoGzT4yBx8pN5vLmH9wK3sR7uE0",
+        apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "dummy-api-key-for-dev",
         authDomain: "airhost-d9c48.firebaseapp.com",
         projectId: "airhost-d9c48",
         storageBucket: "airhost-d9c48.appspot.com",
