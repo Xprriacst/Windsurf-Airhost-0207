@@ -1,0 +1,129 @@
+modules = ["python-3.11", "nodejs-20", "postgresql-16"]
+
+[nix]
+channel = "stable-24_05"
+packages = ["file", "freetype", "jq", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "tcl", "tk", "zlib"]
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "File Analyzer"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "file_analyzer_test"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Airhost Complete App"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "OpenAI Proxy"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "OpenAI Service"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "WhatsApp Webhook"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Conversation Creator"
+
+[[workflows.workflow]]
+name = "File Analyzer"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pip install chardet python-magic pillow && python file_analyzer.py --verbose"
+
+[[workflows.workflow]]
+name = "file_analyzer_test"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pip install chardet python-magic pillow && python file_analyzer.py ./attached_assets --verbose --output analysis_report.json"
+
+[[workflows.workflow]]
+name = "Airhost Complete App"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npx vite --config vite.config.replit.ts --host 0.0.0.0 --port 5000 --force"
+waitForPort = 5000
+
+[[workflows.workflow]]
+name = "OpenAI Proxy"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node openai-proxy.js"
+waitForPort = 8080
+
+[[workflows.workflow]]
+name = "OpenAI Service"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python openai_service.py"
+waitForPort = 8080
+
+[[workflows.workflow]]
+name = "WhatsApp Webhook"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node whatsapp-webhook-server.js"
+waitForPort = 3001
+
+[[workflows.workflow]]
+name = "Conversation Creator"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node create-conversation-from-booking.js"
+waitForPort = 3002
+
+[deployment]
+run = ["sh", "-c", "npx vite --config vite.config.replit.ts --host 0.0.0.0 --port 5000 --force"]
+
+[[ports]]
+localPort = 3000
+externalPort = 3000
+
+[[ports]]
+localPort = 3001
+externalPort = 3002
+
+[[ports]]
+localPort = 3002
+externalPort = 3003
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[[ports]]
+localPort = 5001
+externalPort = 3001
+
+[[ports]]
+localPort = 8080
+externalPort = 8080

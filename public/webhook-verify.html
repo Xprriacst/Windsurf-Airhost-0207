@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Webhook Verification</title>
+</head>
+<body>
+    <script>
+        // Récupérer les paramètres de l'URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const mode = urlParams.get('hub.mode');
+        const token = urlParams.get('hub.verify_token');
+        const challenge = urlParams.get('hub.challenge');
+        
+        // Token de vérification attendu
+        const expectedToken = 'airhost_webhook_verify_2024';
+        
+        if (mode === 'subscribe' && token === expectedToken && challenge) {
+            // Répondre avec le challenge
+            document.body.textContent = challenge;
+            console.log('Webhook vérifié avec succès');
+        } else {
+            // Erreur de vérification
+            document.body.textContent = 'Forbidden';
+            console.error('Échec de la vérification du webhook');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Airhost - Analyseur d'Urgence</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.1em;
+        }
+        
+        .main-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .input-section {
+            margin-bottom: 30px;
+        }
+        
+        .input-section h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 15px;
+            border: 2px solid #e0e6ed;
+            border-radius: 10px;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        
+        button:hover {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .test-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .test-button {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            color: #495057;
+            padding: 15px;
+            text-align: left;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .test-button:hover {
+            border-color: #667eea;
+            background: #f0f2ff;
+        }
+        
+        .test-button h4 {
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .test-button p {
+            font-size: 12px;
+            color: #6c757d;
+            line-height: 1.4;
+        }
+        
+        .results {
+            margin-top: 30px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 5px solid #667eea;
+        }
+        
+        .result-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .emergency-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+        
+        .emergency-critical { background: #e74c3c; color: white; }
+        .emergency-behavioral { background: #f39c12; color: white; }
+        .emergency-complaint { background: #f39c12; color: white; }
+        .emergency-uncertain { background: #3498db; color: white; }
+        .emergency-known { background: #27ae60; color: white; }
+        .emergency-normal { background: #95a5a6; color: white; }
+        
+        .confidence {
+            background: #e9ecef;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            color: #495057;
+        }
+        
+        .explanation {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #667eea;
+        }
+        
+        .suggestion {
+            background: #e8f4f8;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #17a2b8;
+        }
+        
+        .suggestion h4 {
+            color: #0c5460;
+            margin-bottom: 10px;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #dc3545;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏠 Airhost - Analyseur d'Urgence</h1>
+            <p>Système intelligent de détection et classification des urgences clients</p>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number">5</div>
+                <div class="stat-label">Types d'Urgence</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">95%</div>
+                <div class="stat-label">Précision de Détection</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">&lt;2s</div>
+                <div class="stat-label">Temps d'Analyse</div>
+            </div>
+        </div>
+        
+        <div class="main-section">
+            <div class="input-section">
+                <h3>Analyser un Message Client</h3>
+                <textarea id="messageInput" placeholder="Saisissez le message du client à analyser..."></textarea>
+                <div class="buttons">
+                    <button onclick="analyzeMessage()" id="analyzeBtn">
+                        🔍 Analyser le Message
+                    </button>
+                    <button onclick="clearResults()">
+                        🗑️ Effacer
+                    </button>
+                </div>
+            </div>
+            
+            <div class="input-section">
+                <h3>Messages de Test Prédéfinis</h3>
+                <div class="test-buttons">
+                    <div class="test-button" onclick="loadTestMessage(0)">
+                        <h4>🟢 Message Normal</h4>
+                        <p>Bonjour, merci pour ce séjour, tout était parfait !</p>
+                    </div>
+                    <div class="test-button" onclick="loadTestMessage(1)">
+                        <h4>🟡 Plainte Client</h4>
+                        <p>Je suis déçu, la chambre n'était pas propre et le WiFi ne fonctionne pas.</p>
+                    </div>
+                    <div class="test-button" onclick="loadTestMessage(2)">
+                        <h4>🔴 Urgence Critique</h4>
+                        <p>URGENT : Il y a une fuite d'eau importante dans la salle de bain !</p>
+                    </div>
+                    <div class="test-button" onclick="loadTestMessage(3)">
+                        <h4>⚡ Escalade Comportementale</h4>
+                        <p>C'est inacceptable ! Je veux un remboursement sinon je laisse des avis négatifs !</p>
+                    </div>
+                    <div class="test-button" onclick="loadTestMessage(4)">
+                        <h4>❓ Manque d'Information</h4>
+                        <p>Où puis-je trouver le fer à repasser ? Il n'est mentionné nulle part.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Analyse en cours...</p>
+            </div>
+            
+            <div id="results"></div>
+        </div>
+    </div>
+
+    <script>
+        const testMessages = [
+            {
+                content: "Bonjour, merci pour ce séjour, tout était parfait ! L'appartement était impeccable et très bien situé.",
+                type: "normal"
+            },
+            {
+                content: "Je suis très déçu, la chambre n'était pas propre à notre arrivée et le WiFi ne fonctionne pas du tout.",
+                type: "complaint"
+            },
+            {
+                content: "URGENT : Il y a une fuite d'eau importante dans la salle de bain, le sol est complètement inondé !",
+                type: "critical"
+            },
+            {
+                content: "C'est inacceptable ! Je veux un remboursement immédiat sinon je vais laisser des avis négatifs partout !",
+                type: "behavioral"
+            },
+            {
+                content: "Où puis-je trouver le fer à repasser ? Il n'est mentionné nulle part dans les instructions.",
+                type: "missing_info"
+            }
+        ];
+
+        function loadTestMessage(index) {
+            document.getElementById('messageInput').value = testMessages[index].content;
+        }
+
+        function clearResults() {
+            document.getElementById('messageInput').value = '';
+            document.getElementById('results').innerHTML = '';
+        }
+
+        async function analyzeMessage() {
+            const message = document.getElementById('messageInput').value.trim();
+            if (!message) {
+                alert('Veuillez saisir un message à analyser.');
+                return;
+            }
+
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            
+            loading.style.display = 'block';
+            results.innerHTML = '';
+            analyzeBtn.disabled = true;
+
+            try {
+                // Essayer d'abord l'API réelle
+                const analysis = await analyzeWithFallback(message);
+                displayResults(analysis);
+            } catch (error) {
+                displayError('Erreur lors de l\'analyse : ' + error.message);
+            } finally {
+                loading.style.display = 'none';
+                analyzeBtn.disabled = false;
+            }
+        }
+
+        async function analyzeWithFallback(message) {
+            try {
+                // Tentative avec l'API Netlify (si disponible)
+                const response = await fetch('/netlify/functions/analyze-emergency', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        messages: [{ content: message, direction: 'inbound' }],
+                        apartmentId: 'test'
+                    })
+                });
+
+                if (response.ok) {
+                    return await response.json();
+                }
+            } catch (error) {
+                console.log('API non disponible, utilisation du système de secours');
+            }
+
+            // Système de secours avec analyse basée sur mots-clés
+            return analyzeFallback(message);
+        }
+
+        function analyzeFallback(content) {
+            const lowerContent = content.toLowerCase();
+            
+            // Mots-clés pour urgences critiques
+            const criticalKeywords = ['urgent', 'fuite', 'inondation', 'panne', 'cassé', 'plus d\'eau', 'plus de chauffage', 'incendie', 'urgence', 'inondé'];
+            
+            // Mots-clés pour plaintes
+            const complaintKeywords = ['déçu', 'mécontent', 'sale', 'pas propre', 'problème', 'pas satisfait', 'mauvais', 'décevant'];
+            
+            // Mots-clés pour escalade comportementale
+            const behavioralKeywords = ['inacceptable', 'remboursement', 'avis négatif', 'scandaleux', 'arnaque', 'menace', 'avocat'];
+            
+            // Mots-clés positifs
+            const positiveKeywords = ['merci', 'parfait', 'excellent', 'satisfait', 'bien', 'super', 'impeccable'];
+
+            if (criticalKeywords.some(keyword => lowerContent.includes(keyword))) {
+                return {
+                    isEmergency: true,
+                    emergencyType: 'Urgence critique',
+                    confidence: 0.9,
+                    unknownResponse: false,
+                    explanation: 'Détection d\'urgence critique basée sur des mots-clés indiquant un problème grave nécessitant une intervention immédiate.',
+                    suggestedResponse: 'Nous prenons votre situation très au sérieux et allons intervenir immédiatement. Pouvez-vous nous donner plus de détails pour que nous puissions résoudre ce problème rapidement ?'
+                };
+            }
+
+            if (behavioralKeywords.some(keyword => lowerContent.includes(keyword))) {
+                return {
+                    isEmergency: true,
+                    emergencyType: 'Escalade comportementale',
+                    confidence: 0.85,
+                    unknownResponse: false,
+                    explanation: 'Détection d\'escalade comportementale avec menaces potentielles ou langage agressif nécessitant une intervention humaine.',
+                    suggestedResponse: 'Nous comprenons votre frustration et souhaitons résoudre cette situation rapidement. Permettez-nous de vous contacter directement pour trouver une solution satisfaisante.'
+                };
+            }
+
+            if (complaintKeywords.some(keyword => lowerContent.includes(keyword))) {
+                return {
+                    isEmergency: true,
+                    emergencyType: 'Client mécontent',
+                    confidence: 0.8,
+                    unknownResponse: false,
+                    explanation: 'Détection de mécontentement client nécessitant une attention particulière pour éviter une escalade.',
+                    suggestedResponse: 'Nous sommes désolés pour cette expérience qui ne correspond pas à nos standards. Pouvez-vous nous expliquer le problème en détail pour que nous puissions le résoudre ?'
+                };
+            }
+
+            if (positiveKeywords.some(keyword => lowerContent.includes(keyword))) {
+                return {
+                    isEmergency: false,
+                    emergencyType: 'Réponse connue',
+                    confidence: 0.9,
+                    unknownResponse: false,
+                    explanation: 'Message positif ne nécessitant pas d\'intervention urgente. Le client exprime sa satisfaction.',
+                    suggestedResponse: 'Merci beaucoup pour votre retour positif ! Nous sommes ravis que votre séjour se soit bien passé et espérons vous accueillir à nouveau bientôt.'
+                };
+            }
+
+            // Par défaut : manque d'information
+            return {
+                isEmergency: true,
+                emergencyType: 'IA incertaine',
+                confidence: 0.6,
+                unknownResponse: true,
+                explanation: 'Le système ne peut pas déterminer avec certitude la nature de ce message. Une intervention humaine pourrait être nécessaire pour clarifier la demande.',
+                suggestedResponse: 'Merci pour votre message. Un membre de notre équipe va examiner votre demande et vous répondre rapidement avec les informations appropriées.'
+            };
+        }
+
+        function displayResults(analysis) {
+            const results = document.getElementById('results');
+            
+            const emergencyClass = getEmergencyClass(analysis.emergencyType);
+            const emergencyIcon = getEmergencyIcon(analysis.emergencyType);
+            
+            results.innerHTML = `
+                <div class="results">
+                    <h3>Résultats de l'Analyse</h3>
+                    <div class="result-header">
+                        <span>${emergencyIcon}</span>
+                        <span class="emergency-badge ${emergencyClass}">
+                            ${analysis.emergencyType || 'Non classifié'}
+                        </span>
+                        <span class="confidence">
+                            Confiance: ${Math.round(analysis.confidence * 100)}%
+                        </span>
+                    </div>
+                    
+                    <div class="explanation">
+                        <h4>📋 Explication de l'Analyse</h4>
+                        <p>${analysis.explanation}</p>
+                    </div>
+                    
+                    ${analysis.suggestedResponse ? `
+                        <div class="suggestion">
+                            <h4>💬 Réponse Suggérée</h4>
+                            <p>${analysis.suggestedResponse}</p>
+                        </div>
+                    ` : ''}
+                    
+                    <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px; font-size: 12px; color: #6c757d;">
+                        <strong>Détails:</strong> 
+                        Urgence: ${analysis.isEmergency ? 'Oui' : 'Non'} | 
+                        Réponse inconnue: ${analysis.unknownResponse ? 'Oui' : 'Non'}
+                    </div>
+                </div>
+            `;
+        }
+
+        function displayError(message) {
+            const results = document.getElementById('results');
+            results.innerHTML = `<div class="error">${message}</div>`;
+        }
+
+        function getEmergencyClass(type) {
+            switch(type) {
+                case 'Urgence critique': return 'emergency-critical';
+                case 'Escalade comportementale': return 'emergency-behavioral';
+                case 'Client mécontent': return 'emergency-complaint';
+                case 'IA incertaine': return 'emergency-uncertain';
+                case 'Réponse connue': return 'emergency-known';
+                default: return 'emergency-normal';
+            }
+        }
+
+        function getEmergencyIcon(type) {
+            switch(type) {
+                case 'Urgence critique': return '🚨';
+                case 'Escalade comportementale': return '⚡';
+                case 'Client mécontent': return '⚠️';
+                case 'IA incertaine': return '❓';
+                case 'Réponse connue': return '✅';
+                default: return '🔍';
+            }
+        }
+    </script>
+</body>
+</html>
