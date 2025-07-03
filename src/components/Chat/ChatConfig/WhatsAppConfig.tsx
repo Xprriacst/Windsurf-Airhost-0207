@@ -65,11 +65,10 @@ export default function WhatsAppConfig({ open, onClose }: WhatsAppConfigProps) {
         const config = data as WhatsAppConfigType;
         setPhoneNumberId(config.phone_number_id || '');
         setWhatsappToken(config.token || '');
-        
-        // Charger les options de template de bienvenue
-        setAutoWelcomeEnabled(config.auto_welcome_enabled || false);
-        setSelectedTemplate(config.welcome_template || '');
       }
+      
+      // Charger les paramètres de template depuis la nouvelle table
+      await loadTemplateConfig();
       
       // Charger la liste des templates disponibles
       await loadAvailableTemplates();
@@ -81,10 +80,43 @@ export default function WhatsAppConfig({ open, onClose }: WhatsAppConfigProps) {
     }
   };
 
+  const loadTemplateConfig = async () => {
+    try {
+      console.log('Chargement de la configuration des templates...');
+      
+      // Récupérer la configuration des templates depuis la nouvelle table
+      // Utiliser l'ID de test pour le moment (à remplacer par la vraie logique d'hôte)
+      const testHostId = 'a2ce1797-a5ab-4c37-9512-4a4058e0f1c7';
+      const { data: templateData, error: templateError } = await supabase
+        .from('whatsapp_template_config')
+        .select('send_welcome_template, welcome_template_name, auto_templates_enabled')
+        .eq('host_id', testHostId)
+        .single();
+      
+      if (templateError && templateError.code !== 'PGRST116') {
+        console.error('Erreur lors du chargement de la config template:', templateError);
+      } else if (templateData) {
+        console.log('Configuration template récupérée:', templateData);
+        // Utiliser auto_templates_enabled pour le toggle principal
+        setAutoWelcomeEnabled(templateData.auto_templates_enabled || false);
+        setSelectedTemplate(templateData.welcome_template_name || 'hello_world');
+      } else {
+        console.log('Aucune configuration template trouvée, utilisation des valeurs par défaut');
+        setAutoWelcomeEnabled(false);
+        setSelectedTemplate('hello_world');
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement de la configuration template:', error);
+      setAutoWelcomeEnabled(false);
+      setSelectedTemplate('hello_world');
+    }
+  };
+
   const loadAvailableTemplates = async () => {
     try {
       // Templates prédéfinis communs pour les locations courte durée
       const defaultTemplates = [
+        'hello_world',
         'welcome_checkin',
         'welcome_booking_confirmation',
         'welcome_property_info',
@@ -96,12 +128,13 @@ export default function WhatsAppConfig({ open, onClose }: WhatsAppConfigProps) {
     } catch (error) {
       console.error('Erreur lors du chargement des templates:', error);
       // Utiliser des templates par défaut en cas d'erreur
-      setAvailableTemplates(['welcome_checkin', 'welcome_booking_confirmation']);
+      setAvailableTemplates(['hello_world', 'welcome_checkin']);
     }
   };
 
   const getTemplateDisplayName = (templateName: string): string => {
     const templateNames: Record<string, string> = {
+      'hello_world': 'Bonjour monde (par défaut)',
       'welcome_checkin': 'Bienvenue et instructions d\'arrivée',
       'welcome_booking_confirmation': 'Confirmation de réservation',
       'welcome_property_info': 'Informations sur la propriété',
@@ -131,28 +164,49 @@ export default function WhatsAppConfig({ open, onClose }: WhatsAppConfigProps) {
     setErrorMessage('');
     
     try {
-      console.log('Tentative de sauvegarde de la configuration WhatsApp via Supabase directe...');
+      console.log('Sauvegarde de la configuration WhatsApp...');
       
-      // Préparer les données avec updated_at et les nouvelles options de template
-      const dataToSave = {
+      // 1. Sauvegarder la configuration de base WhatsApp
+      const whatsappConfigData = {
         phone_number_id: phoneNumberId,
         token: whatsappToken,
-        auto_welcome_enabled: autoWelcomeEnabled,
-        welcome_template: selectedTemplate,
         updated_at: new Date().toISOString()
       };
       
-      // Utiliser directement l'API Supabase sans passer par le service
-      const { error } = await supabase
+      const { error: whatsappError } = await supabase
         .from('whatsapp_config')
-        .upsert(dataToSave);
+        .upsert(whatsappConfigData);
       
-      if (error) {
-        console.error('Erreur lors de la sauvegarde via Supabase:', error);
-        throw error;
+      if (whatsappError) {
+        console.error('Erreur lors de la sauvegarde WhatsApp config:', whatsappError);
+        throw whatsappError;
       }
       
-      console.log('Configuration WhatsApp sauvegardée avec succès via Supabase directe');
+      // 2. Sauvegarder la configuration des templates
+      // Utiliser l'ID de test pour le moment (à remplacer par la vraie logique d'hôte)
+      const testHostId = 'a2ce1797-a5ab-4c37-9512-4a4058e0f1c7';
+      const templateConfigData = {
+        host_id: testHostId,
+        send_welcome_template: true, // Toujours true - le template est disponible
+        welcome_template_name: selectedTemplate,
+        auto_templates_enabled: autoWelcomeEnabled, // Contrôlé par le toggle
+        updated_at: new Date().toISOString()
+      };
+      
+      const { error: templateError } = await supabase
+        .from('whatsapp_template_config')
+        .upsert(templateConfigData, {
+          onConflict: 'host_id'
+        });
+      
+      if (templateError) {
+        console.error('Erreur lors de la sauvegarde template config:', templateError);
+        throw templateError;
+      }
+      
+      console.log('Configuration template sauvegardée:', templateConfigData);
+      
+      console.log('Configuration WhatsApp sauvegardée avec succès');
       setSuccessMessage('Configuration WhatsApp enregistrée avec succès');
       setTimeout(() => {
         onClose();
