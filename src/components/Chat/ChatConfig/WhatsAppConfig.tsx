@@ -291,7 +291,19 @@ export default function WhatsAppConfig({ open, onClose }: WhatsAppConfigProps) {
                 control={
                   <Switch
                     checked={autoWelcomeEnabled}
-                    onChange={(e) => setAutoWelcomeEnabled(e.target.checked)}
+                    onChange={async (e) => {
+                      const newValue = e.target.checked;
+                      console.log(`🔄 Toggle changé: ${autoWelcomeEnabled} → ${newValue}`);
+                      setAutoWelcomeEnabled(newValue);
+                      
+                      // Sauvegarder automatiquement le changement
+                      try {
+                        await handleSave();
+                        console.log('✅ Toggle sauvegardé automatiquement');
+                      } catch (error) {
+                        console.error('❌ Erreur sauvegarde toggle:', error);
+                      }
+                    }}
                     color="primary"
                   />
                 }
