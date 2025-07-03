@@ -164,7 +164,13 @@ export default function WhatsAppConfig({ open, onClose }: WhatsAppConfigProps) {
     setErrorMessage('');
     
     try {
-      console.log('Sauvegarde de la configuration WhatsApp...');
+      console.log('🔧 DÉBUT SAUVEGARDE WhatsApp Config');
+      console.log('📊 État actuel du toggle:', {
+        autoWelcomeEnabled,
+        selectedTemplate,
+        phoneNumberId: phoneNumberId ? '[SET]' : '[EMPTY]',
+        whatsappToken: whatsappToken ? '[SET]' : '[EMPTY]'
+      });
       
       // 1. Sauvegarder la configuration de base WhatsApp
       const whatsappConfigData = {
@@ -193,6 +199,8 @@ export default function WhatsAppConfig({ open, onClose }: WhatsAppConfigProps) {
         updated_at: new Date().toISOString()
       };
       
+      console.log('💾 Données template à sauvegarder:', templateConfigData);
+      
       const { error: templateError } = await supabase
         .from('whatsapp_template_config')
         .upsert(templateConfigData, {
@@ -204,9 +212,23 @@ export default function WhatsAppConfig({ open, onClose }: WhatsAppConfigProps) {
         throw templateError;
       }
       
-      console.log('Configuration template sauvegardée:', templateConfigData);
+      console.log('✅ Configuration template sauvegardée avec succès');
       
-      console.log('Configuration WhatsApp sauvegardée avec succès');
+      // Vérification immédiate de la sauvegarde
+      const { data: verifyData, error: verifyError } = await supabase
+        .from('whatsapp_template_config')
+        .select('auto_templates_enabled, send_welcome_template, welcome_template_name')
+        .eq('host_id', testHostId)
+        .single();
+      
+      if (verifyError) {
+        console.error('❌ Erreur lors de la vérification:', verifyError);
+      } else {
+        console.log('🔍 Vérification post-sauvegarde:', verifyData);
+        console.log(`🎯 Toggle sauvegardé: ${verifyData.auto_templates_enabled} (attendu: ${autoWelcomeEnabled})`);
+      }
+      
+      console.log('✅ Configuration WhatsApp sauvegardée avec succès');
       setSuccessMessage('Configuration WhatsApp enregistrée avec succès');
       setTimeout(() => {
         onClose();
