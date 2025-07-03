@@ -240,6 +240,92 @@ export default function WhatsAppConfig({ open, onClose }: WhatsAppConfigProps) {
       setIsSaving(false);
     }
   };
+
+  // Version modifiée de handleSave qui accepte la nouvelle valeur du toggle
+  // pour éviter le bug de timing avec setState asynchrone
+  const handleSaveWithToggleValue = async (newToggleValue: boolean) => {
+    if (!validateFields()) return;
+    
+    setIsSaving(true);
+    setErrorMessage('');
+    
+    try {
+      console.log('🔧 DÉBUT SAUVEGARDE WhatsApp Config (avec nouvelle valeur toggle)');
+      console.log('📊 État du toggle:', {
+        oldValue: autoWelcomeEnabled,
+        newValue: newToggleValue,
+        selectedTemplate,
+        phoneNumberId: phoneNumberId ? '[SET]' : '[EMPTY]',
+        whatsappToken: whatsappToken ? '[SET]' : '[EMPTY]'
+      });
+      
+      // 1. Sauvegarder la configuration de base WhatsApp
+      const whatsappConfigData = {
+        phone_number_id: phoneNumberId,
+        token: whatsappToken,
+        updated_at: new Date().toISOString()
+      };
+      
+      const { error: whatsappError } = await supabase
+        .from('whatsapp_config')
+        .upsert(whatsappConfigData);
+      
+      if (whatsappError) {
+        console.error('Erreur lors de la sauvegarde WhatsApp config:', whatsappError);
+        throw whatsappError;
+      }
+      
+      // 2. Sauvegarder la configuration des templates avec la NOUVELLE valeur du toggle
+      const testHostId = 'a2ce1797-a5ab-4c37-9512-4a4058e0f1c7';
+      const templateConfigData = {
+        host_id: testHostId,
+        send_welcome_template: true,
+        welcome_template_name: selectedTemplate,
+        auto_templates_enabled: newToggleValue, // Utiliser la nouvelle valeur, pas l'état React
+        updated_at: new Date().toISOString()
+      };
+      
+      console.log('💾 Données template à sauvegarder (avec nouvelle valeur):', templateConfigData);
+      
+      const { error: templateError } = await supabase
+        .from('whatsapp_template_config')
+        .upsert(templateConfigData, {
+          onConflict: 'host_id'
+        });
+      
+      if (templateError) {
+        console.error('Erreur lors de la sauvegarde template config:', templateError);
+        throw templateError;
+      }
+      
+      console.log('✅ Configuration template sauvegardée avec succès (nouvelle valeur)');
+      
+      // Vérification immédiate de la sauvegarde
+      const { data: verifyData, error: verifyError } = await supabase
+        .from('whatsapp_template_config')
+        .select('auto_templates_enabled, send_welcome_template, welcome_template_name')
+        .eq('host_id', testHostId)
+        .single();
+      
+      if (verifyError) {
+        console.error('❌ Erreur lors de la vérification:', verifyError);
+      } else {
+        console.log('🔍 Vérification post-sauvegarde:', verifyData);
+        console.log(`🎯 Toggle sauvegardé: ${verifyData.auto_templates_enabled} (attendu: ${newToggleValue})`);
+      }
+      
+      console.log('✅ Configuration WhatsApp sauvegardée avec succès');
+      setSuccessMessage('Configuration WhatsApp enregistrée avec succès');
+      setTimeout(() => {
+        onClose();
+      }, 1500);
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde de la configuration:', error);
+      setErrorMessage('Erreur lors de la sauvegarde de la configuration');
+    } finally {
+      setIsSaving(false);
+    }
+  };
   
   const handleCloseSnackbar = () => {
     setSuccessMessage('');
@@ -296,9 +382,9 @@ export default function WhatsAppConfig({ open, onClose }: WhatsAppConfigProps) {
                       console.log(`🔄 Toggle changé: ${autoWelcomeEnabled} → ${newValue}`);
                       setAutoWelcomeEnabled(newValue);
                       
-                      // Sauvegarder automatiquement le changement
+                      // Sauvegarder automatiquement le changement avec la nouvelle valeur
                       try {
-                        await handleSave();
+                        await handleSaveWithToggleValue(newValue);
                         console.log('✅ Toggle sauvegardé automatiquement');
                       } catch (error) {
                         console.error('❌ Erreur sauvegarde toggle:', error);
