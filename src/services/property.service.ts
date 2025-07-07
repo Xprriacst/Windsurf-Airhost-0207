@@ -173,6 +173,8 @@ export async function createProperty(property: Omit<Property, 'id' | 'created_at
     updated_at: new Date().toISOString()
   };
 
+  // Debug log : payload envoyé
+  console.log('Payload envoyé à Supabase:', newProperty);
   const { data, error } = await supabase
     .from('properties')
     .insert([newProperty])
@@ -180,7 +182,9 @@ export async function createProperty(property: Omit<Property, 'id' | 'created_at
     .single();
 
   if (error) {
-    console.error('Erreur lors de la création de la propriété:', error);
+    // Debug log : message d'erreur détaillé
+    console.error('Erreur Supabase lors de la création de la propriété:', error);
+    console.log('Payload envoyé (reprise):', newProperty);
     throw error;
   }
 
