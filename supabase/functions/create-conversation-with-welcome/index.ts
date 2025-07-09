@@ -167,10 +167,40 @@ serve(async (req)=>{
       actualTemplateName = null;
     }
     if (shouldSendTemplate && actualTemplateName) {
+  if (!shouldSendTemplate) {
+    // Sécurité supplémentaire : ne jamais envoyer si la config est OFF
+    console.error('[BUG ALERT] Tentative d\'envoi de template alors que shouldSendTemplate=false (toggle OFF)', {
+      host_id,
+      auto_templates_enabled: templateConfig?.auto_templates_enabled,
+      send_welcome_template: templateConfig?.send_welcome_template,
+      welcome_template_name: templateConfig?.welcome_template_name
+    });
+    welcomeMessageError = '[SECURITY BLOCK] Envoi de template bloqué car toggle OFF';
+  } else {
+    // Log explicite avant envoi
+    console.log('[SEND TEMPLATE] Envoi du template WhatsApp autorisé', {
+      host_id,
+      guest_phone,
+      template: actualTemplateName
+    });
+  }
       try {
         // Re-récupérer la configuration WhatsApp si nécessaire
         let whatsappConfigData = null;
         let configError = null;
+        if (!shouldSendTemplate) {
+          // Sécurité ultime : retour sans envoi
+          console.error('[SECURITY BLOCK] Blocage effectif de l\'envoi du template car shouldSendTemplate=false');
+          return new Response(JSON.stringify({
+            message: 'Aucun template envoyé (toggle OFF)',
+            conversation: newConversation
+          }), {
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            status: 200
+          });
+        }
         try {
           // Essayer d'abord avec host_id
           const { data: configWithHost, error: hostError } = await supabaseClient.from('whatsapp_config').select('*').eq('host_id', host_id).single();

@@ -12,8 +12,8 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABAS
 // Créer le client Supabase
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// ID de l'hôte dont les conversations doivent être supprimées
-const HOST_ID = '471eca7b-7628-4ba1-a454-81dd60ae47bf';
+// ID de l'hôte dont les conversations doivent être supprimées (peut être passé en argument CLI)
+const HOST_ID = process.argv[2] || '471eca7b-7628-4ba1-a454-81dd60ae47bf';
 
 async function deleteHostConversations() {
   console.log(`🔍 Recherche des propriétés appartenant à l'hôte ${HOST_ID}...`);

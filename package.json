@@ -35,6 +35,7 @@
     "react-icons": "^5.5.0",
     "react-router-dom": "^7.1.5",
     "react-toastify": "^11.0.5",
+    "uuid": "^11.1.0",
     "workbox-core": "^7.3.0",
     "workbox-expiration": "^7.3.0",
     "workbox-precaching": "^7.3.0",
