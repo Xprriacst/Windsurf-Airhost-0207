@@ -123,19 +123,30 @@ serve(async (req)=>{
       // Récupérer la configuration des templates WhatsApp depuis la base de données
       console.log('Vérification de la configuration des templates pour host_id:', host_id);
       
-      const { data: templateConfig, error: templateError } = await supabaseClient
+      // Modification: utiliser select() au lieu de single() pour gérer plusieurs configurations
+      const { data: templateConfigs, error: templateError } = await supabaseClient
         .from('whatsapp_template_config')
         .select('*')
-        .eq('host_id', host_id)
-        .single();
+        .eq('host_id', host_id);
       
-      if (templateError) {
-        console.log('Erreur récupération config template ou config non trouvée:', templateError.message);
+      // Variable pour stocker la configuration template
+      let templateConfig = null;
+      
+      if (templateError || !templateConfigs || templateConfigs.length === 0) {
+        console.log('Erreur récupération config template ou config non trouvée:', templateError?.message || 'Aucune configuration trouvée');
         console.log('Pas de configuration template trouvée, templates désactivés par défaut');
         // Si pas de configuration trouvée, ne pas envoyer de template
         shouldSendTemplate = false;
         actualTemplateName = null;
       } else {
+        // Si plusieurs configurations existent, prendre la première et logger un avertissement
+        if (templateConfigs.length > 1) {
+          console.log(`ATTENTION: ${templateConfigs.length} configurations trouvées pour host_id ${host_id}. Utilisation de la première.`);
+        }
+        
+        // Utiliser la première configuration (ou la seule)
+        templateConfig = templateConfigs[0];
+        
         // Utiliser la configuration réelle depuis la base de données
         // CORRECTION DU BUG : vérifier auto_templates_enabled ET send_welcome_template
         const autoTemplatesEnabled = templateConfig.auto_templates_enabled;
@@ -203,7 +214,7 @@ serve(async (req)=>{
         }
         try {
           // Essayer d'abord avec host_id
-          const { data: configWithHost, error: hostError } = await supabaseClient.from('whatsapp_config').select('*').eq('host_id', host_id).single();
+          const { data: configWithHost, error: hostError } = await supabaseClient.from('whatsapp_config').select('*').eq('host_id', host_id).maybeSingle();
           if (!hostError && configWithHost) {
             whatsappConfigData = configWithHost;
           }
@@ -213,7 +224,7 @@ serve(async (req)=>{
         // Si pas de résultat avec host_id, essayer sans filtre (prendre la première config)
         if (!whatsappConfigData) {
           try {
-            const { data: configFallback, error: fallbackError } = await supabaseClient.from('whatsapp_config').select('*').limit(1).single();
+            const { data: configFallback, error: fallbackError } = await supabaseClient.from('whatsapp_config').select('*').limit(1).maybeSingle();
             if (!fallbackError && configFallback) {
               whatsappConfigData = configFallback;
               console.log('Configuration WhatsApp récupérée en mode fallback');

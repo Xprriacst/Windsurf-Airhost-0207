@@ -86,25 +86,58 @@ serve(async (req) => {
     }
 
     // Vérifier si l'envoi automatique de template de bienvenue est activé
-    const { data: whatsappConfig } = await supabaseClient
-      .from('whatsapp_config')
-      .select('auto_welcome_enabled, welcome_template, phone_number_id, token')
-      .order('updated_at', { ascending: false })
-      .limit(1)
+    const { data: property } = await supabaseClient
+      .from('properties')
+      .select('host_id')
+      .eq('id', property_id)
       .single();
 
-    let welcomeMessageResult = { success: false, reason: "Configuration WhatsApp manquante" };
-
-    if (whatsappConfig?.auto_welcome_enabled && whatsappConfig.welcome_template) {
+    if (property) {
       try {
-        // Récupérer l'ID de la propriété pour envoyer le template
-        const { data: property } = await supabaseClient
-          .from('properties')
-          .select('host_id')
-          .eq('id', property_id)
-          .single();
+        // Récupérer la configuration des templates WhatsApp depuis la base de données
+        console.log('Vérification de la configuration des templates pour host_id:', property.host_id);
+        
+        // Modification: utiliser select() au lieu de single() pour gérer plusieurs configurations
+        const { data: templateConfigs, error: templateError } = await supabaseClient
+          .from('whatsapp_template_config')
+          .select('*')
+          .eq('host_id', property.host_id);
+        
+        // Déclarer templateConfig1 en dehors du bloc if
+        let templateConfig1 = null;
+        
+        if (templateError || !templateConfigs || templateConfigs.length === 0) {
+          console.log('Erreur récupération config template ou config non trouvée:', templateError?.message || 'Aucune configuration trouvée');
+          console.log('Pas de configuration template trouvée, templates désactivés par défaut');
+          // Si pas de configuration trouvée, ne pas envoyer de template
+          let shouldSendTemplate = false;
+          let actualTemplateName = null;
+        } else {
+          // Si plusieurs configurations existent, prendre la première et logger un avertissement
+          if (templateConfigs.length > 1) {
+            console.log(`ATTENTION: ${templateConfigs.length} configurations trouvées pour host_id ${property.host_id}. Utilisation de la première.`);
+          }
+          
+          // Utiliser la première configuration (ou la seule)
+          templateConfig1 = templateConfigs[0];
+          
+          // Utiliser la configuration réelle depuis la base de données
+          // CORRECTION DU BUG : vérifier auto_templates_enabled ET send_welcome_template
+          const autoTemplatesEnabled = templateConfig1.auto_templates_enabled;
+          const templateEnabled = templateConfig1.send_welcome_template;
+          const templateName = templateConfig1.welcome_template_name;
+          // Template envoyé SEULEMENT si auto_templates_enabled ET send_welcome_template sont vrais
+          let shouldSendTemplate = autoTemplatesEnabled && templateEnabled && templateName;
+          let actualTemplateName = templateName;
+          console.log('Configuration template récupérée depuis la base de données:', {
+            auto_templates_enabled: autoTemplatesEnabled,
+            send_welcome_template: templateEnabled,
+            welcome_template_name: templateName,
+            decision: shouldSendTemplate
+          });
+        }
 
-        if (property) {
+        if (shouldSendTemplate) {
           // Envoyer le template de bienvenue via l'API WhatsApp
           const templateResponse = await fetch('http://localhost:8080/send-whatsapp-template', {
             method: 'POST',
@@ -112,7 +145,7 @@ serve(async (req) => {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              template_name: whatsappConfig.welcome_template,
+              template_name: actualTemplateName,
               host_id: property.host_id,
               to: normalizedPhone,
               guest_name: guest_name,

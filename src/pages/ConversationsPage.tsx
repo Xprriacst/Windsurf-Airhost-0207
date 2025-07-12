@@ -11,6 +11,7 @@ import {
   Alert
 } from '@mui/material';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../hooks/useAuth';
 
 interface Conversation {
   id: string;
@@ -33,23 +34,31 @@ interface Message {
 }
 
 const ConversationsPage: React.FC = () => {
+  const { user, loading: authLoading } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<{ [key: string]: Message[] }>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchConversations();
-  }, []);
+    if (user && !authLoading) {
+      fetchConversations();
+    }
+  }, [user, authLoading]);
 
   const fetchConversations = async () => {
     try {
       setLoading(true);
       
-      // Récupérer les conversations
+      if (!user?.id) {
+        throw new Error('Utilisateur non authentifié');
+      }
+      
+      // Récupérer les conversations pour cet utilisateur uniquement
       const { data: conversationsData, error: conversationsError } = await supabase
         .from('conversations')
         .select('*')
+        .eq('host_id', user.id)
         .order('created_at', { ascending: false });
 
       if (conversationsError) {
@@ -91,7 +100,7 @@ const ConversationsPage: React.FC = () => {
     }
   };
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <Container maxWidth="lg">
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
