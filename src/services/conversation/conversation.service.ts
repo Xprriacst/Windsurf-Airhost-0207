@@ -21,7 +21,7 @@ class ConversationService {
       if (sessionError) throw new Error(`Erreur de session: ${sessionError.message}`);
       if (!sessionData.session) throw new Error('Utilisateur non authentifié');
 
-      const { data, error } = await supabase.functions.invoke('create-conversation', {
+      const { data, error } = await supabase.functions.invoke('create-conversation-with-welcome', {
         body: params,
       });
 
