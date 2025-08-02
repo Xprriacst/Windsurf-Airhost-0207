@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { 
   Box, 
@@ -14,6 +14,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 import { Conversation } from '../../types/conversation';
+import { conversationAnalysis } from '../../services/conversation-analysis';
 
 interface ConversationListProps {
   conversations: Conversation[];
@@ -22,6 +23,8 @@ interface ConversationListProps {
 }
 
 export default function ConversationList({ conversations, onSelectConversation, onConversationUpdate }: ConversationListProps) {
+  // État pour stocker les analyses IA des conversations
+  const [conversationAnalyses, setConversationAnalyses] = useState<Record<string, any>>({});
   useEffect(() => {
     // Souscrire aux changements en temps réel
     const timestamp = new Date().toISOString();
@@ -75,37 +78,81 @@ export default function ConversationList({ conversations, onSelectConversation, 
     })));
   }, [conversations]);
 
+  // Effet pour analyser les nouvelles conversations avec l'IA
+  useEffect(() => {
+    const analyzeNewConversations = async () => {
+      for (const conversation of conversations) {
+        if (!conversationAnalyses[conversation.id] && conversation.last_message) {
+          try {
+            await analyzeMessageForTag(conversation);
+          } catch (error) {
+            console.error(`[ConversationList] Erreur analyse conversation ${conversation.id}:`, error);
+          }
+        }
+      }
+    };
+    
+    analyzeNewConversations();
+  }, [conversations]);
+
   // Fonction pour générer les initiales à partir du nom
   const getInitials = (name: string) => {
     if (!name) return '?';
     return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
   };
 
-  // Fonction pour analyser le message et détecter automatiquement le tag
-  const analyzeMessageForTag = (message: string | null) => {
-    if (!message) return null;
+  // Fonction pour analyser le message avec l'IA et détecter automatiquement le tag
+  const analyzeMessageForTag = async (conversation: Conversation) => {
+    if (!conversation.last_message) return null;
     
-    const messageText = message.toLowerCase();
-    
-    // Mots-clés pour "Urgence critique"
-    if (messageText.includes('urgent') || 
-        messageText.includes('chauffage') || 
-        messageText.includes('froid') ||
-        messageText.includes('panne') ||
-        messageText.includes('rapidement') ||
-        messageText.includes('technicien')) {
-      return 'Urgence critique';
+    try {
+      // Vérifier d'abord si on a déjà une analyse en cache pour cette conversation
+      if (conversationAnalyses[conversation.id]) {
+        return conversationAnalyses[conversation.id].conversationTag;
+      }
+      
+      // Chercher l'analyse existante dans la base de données
+      const { data: existingAnalysis, error: analysisError } = await supabase
+        .from('conversation_analyses')
+        .select('*')
+        .eq('conversation_id', conversation.id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      if (analysisError) {
+        console.error('[ConversationList] Erreur récupération analyse:', analysisError);
+        return null;
+      }
+      
+      if (existingAnalysis && existingAnalysis.length > 0) {
+        // Utiliser l'analyse existante
+        const analysis = existingAnalysis[0];
+        setConversationAnalyses(prev => ({
+          ...prev,
+          [conversation.id]: analysis
+        }));
+        return analysis.conversation_tag;
+      }
+      
+      // Si pas d'analyse existante, créer une nouvelle analyse avec l'IA
+      const messages = [{ 
+        content: conversation.last_message, 
+        direction: 'inbound' as const 
+      }];
+      
+      const analysis = await conversationAnalysis.analyzeConversation(messages);
+      
+      // Stocker l'analyse en cache
+      setConversationAnalyses(prev => ({
+        ...prev,
+        [conversation.id]: analysis
+      }));
+      
+      return analysis.conversationTag;
+    } catch (error) {
+      console.error('[ConversationList] Erreur analyse IA:', error);
+      return null;
     }
-    
-    // Mots-clés pour "Client mécontent"
-    if (messageText.includes('mécontent') || 
-        messageText.includes('insatisfait') || 
-        messageText.includes('problème') ||
-        messageText.includes('déçu')) {
-      return 'Client mécontent';
-    }
-    
-    return null;
   };
 
   // Fonction pour obtenir la couleur et le style du tag d'analyse
@@ -255,7 +302,8 @@ export default function ConversationList({ conversations, onSelectConversation, 
                       {conversation.property?.[0]?.name || ''}
                     </Typography>
                     {(() => {
-                      const detectedTag = analyzeMessageForTag(conversation.last_message || null);
+                      const analysis = conversationAnalyses[conversation.id];
+                      const detectedTag = analysis?.conversationTag || analysis?.conversation_tag;
                       const tagStyle = getTagStyle(detectedTag);
                       return tagStyle ? (
                         <Chip

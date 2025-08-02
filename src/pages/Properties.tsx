@@ -256,45 +256,61 @@ Instructions pour les réponses :
           </Button>
         </Box>
       ) : (
-        <Grid container spacing={3}>
+        <Grid container spacing={isMobile ? 2 : 4}>
           {properties.map((property) => (
             <Grid item xs={12} sm={6} md={4} key={property.id}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h5" component="h2" gutterBottom>
+              <Card
+                sx={{
+                  borderRadius: 4,
+                  boxShadow: isMobile ? 2 : 6,
+                  minHeight: 340,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  transition: 'box-shadow 0.2s',
+                  '&:hover': { boxShadow: 12 },
+                  width: '100%',
+                  maxWidth: isMobile ? '100%' : 380,
+                  mx: 'auto',
+                }}
+              >
+                <CardContent sx={{ flex: 1, p: isMobile ? 2 : 3 }}>
+                  <Typography variant="h6" component="h2" fontWeight={700} gutterBottom sx={{ fontSize: isMobile ? '1.1rem' : '1.3rem' }}>
                     {property.name}
                   </Typography>
-                  <Typography color="textSecondary" gutterBottom>
+                  <Typography color="text.secondary" gutterBottom sx={{ fontSize: isMobile ? '0.98rem' : '1.08rem' }}>
                     {property.address}
                   </Typography>
-                  <Typography variant="body2" component="p" sx={{ mb: 2 }}>
+                  <Typography variant="body2" component="p" sx={{ mb: 2, color: 'text.secondary', fontSize: isMobile ? '0.92rem' : '1rem' }}>
                     {property.description || 'Aucune description'}
                   </Typography>
-                  
-                  <Accordion>
+                  <Accordion sx={{ bgcolor: 'grey.50', boxShadow: 'none', borderRadius: 2 }}>
                     <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                      <Typography>Instructions IA</Typography>
+                      <Typography fontWeight={600} fontSize={isMobile ? '0.98rem' : '1.08rem'}>Instructions IA</Typography>
                     </AccordionSummary>
                     <AccordionDetails>
-                      <Typography variant="body2">
+                      <Typography variant="body2" sx={{ color: 'text.secondary', whiteSpace: 'pre-line' }}>
                         {property.ai_instructions || 'Aucune instruction spécifique pour l\'IA'}
                       </Typography>
                     </AccordionDetails>
                   </Accordion>
                 </CardContent>
-                <CardActions>
-                  <Button 
-                    size="small" 
-                    color="primary" 
+                <CardActions sx={{ px: isMobile ? 2 : 3, pb: isMobile ? 2 : 3, pt: 0, justifyContent: 'flex-end', gap: 1 }}>
+                  <Button
+                    size="medium"
+                    variant="outlined"
+                    color="primary"
                     startIcon={<EditIcon />}
+                    sx={{ minWidth: 120, fontWeight: 600 }}
                     onClick={() => handleOpenDialog(property)}
                   >
                     Modifier
                   </Button>
-                  <Button 
-                    size="small" 
-                    color="error" 
+                  <Button
+                    size="medium"
+                    variant="outlined"
+                    color="error"
                     startIcon={<DeleteIcon />}
+                    sx={{ minWidth: 120, fontWeight: 600 }}
                     onClick={() => handleOpenDeleteConfirm(property)}
                   >
                     Supprimer
