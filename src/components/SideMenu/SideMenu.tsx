@@ -20,6 +20,7 @@ const SideMenu: React.FC = () => {
   const navigate = useNavigate();
   const [configOpen, setConfigOpen] = useState(false);
   const [phoneNumberId, setPhoneNumberId] = useState('');
+  const [wabaId, setWabaId] = useState('');
   const [whatsappToken, setWhatsappToken] = useState('');
   const [saving, setSaving] = useState(false);
   const [sendWelcomeTemplate, setSendWelcomeTemplate] = useState(false);
@@ -31,18 +32,18 @@ const SideMenu: React.FC = () => {
   const user = useUser();
 
   // Fonction pour récupérer les templates WhatsApp disponibles
-  const fetchAvailableTemplates = async (phoneNumberId: string, token: string) => {
-    if (!phoneNumberId || !token) {
-      console.log('⚠️ Phone Number ID ou token manquant pour récupérer les templates');
+  const fetchAvailableTemplates = async (wabaIdParam: string, token: string) => {
+    if (!wabaIdParam || !token) {
+      console.log('⚠️ WABA ID ou token manquant pour récupérer les templates');
       setLoadingTemplates(false);
       return;
     }
     
     setLoadingTemplates(true);
     try {
-      console.log('🔄 Récupération des templates pour Phone Number ID:', phoneNumberId);
+      console.log('🔄 Récupération des templates pour WABA ID:', wabaIdParam);
       
-      const response = await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/message_templates`, {
+      const response = await fetch(`https://graph.facebook.com/v17.0/${wabaIdParam}/message_templates`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -140,13 +141,15 @@ const SideMenu: React.FC = () => {
       
       if (config) {
         setPhoneNumberId(config.phone_number_id || '');
+        setWabaId(config.waba_id || '283870984799369'); // Valeur par défaut pour compatibilité
         setWhatsappToken(config.token || '');
         setSendWelcomeTemplate(templateSettings.send_welcome_template);
         setWelcomeTemplateName(templateSettings.welcome_template_name);
         
         // Récupérer automatiquement les templates disponibles si on a les credentials
-        if (config.phone_number_id && config.token) {
-          await fetchAvailableTemplates(config.phone_number_id, config.token);
+        const wabaIdToUse = config.waba_id || '283870984799369'; // Fallback sur l'ancien WABA ID
+        if (wabaIdToUse && config.token) {
+          await fetchAvailableTemplates(wabaIdToUse, config.token);
         } else {
           // Initialiser avec hello_world en premier pour les tests
           const fallbackTemplates = [
@@ -211,8 +214,8 @@ const SideMenu: React.FC = () => {
       console.log('Début de la sauvegarde de la configuration WhatsApp...');
       
       // Validation des champs requis
-      if (!phoneNumberId || !whatsappToken) {
-        toast.error('Veuillez remplir tous les champs obligatoires');
+      if (!phoneNumberId || !wabaId || !whatsappToken) {
+        toast.error('Veuillez remplir tous les champs obligatoires (Phone Number ID, WABA ID, et Token)');
         setSaving(false);
         return;
       }
@@ -220,6 +223,7 @@ const SideMenu: React.FC = () => {
       // Préparer les données de configuration de base
       const configData = {
         phone_number_id: phoneNumberId,
+        waba_id: wabaId,
         token: whatsappToken
       };
       
@@ -342,6 +346,17 @@ const SideMenu: React.FC = () => {
               value={phoneNumberId}
               onChange={(e) => setPhoneNumberId(e.target.value)}
               placeholder="Entrez votre Phone Number ID WhatsApp"
+              helperText="ID du numéro de téléphone (pour l'envoi de messages)"
+            />
+            <TextField
+              label="WhatsApp Business Account ID (WABA ID)"
+              variant="outlined"
+              fullWidth
+              value={wabaId}
+              onChange={(e) => setWabaId(e.target.value)}
+              placeholder="Entrez votre WABA ID (ex: 283870984799369)"
+              helperText="ID du compte Business WhatsApp (pour récupérer les templates)"
+              required
             />
             <TextField
               label="Token WhatsApp"
