@@ -87,7 +87,11 @@ export default function WhatsAppConfig({ open, onClose }: WhatsAppConfigProps) {
       console.log('Chargement de la configuration des templates...');
       
       // Récupérer la configuration des templates depuis la nouvelle table
-      // Utiliser l'ID de test pour le moment (à remplacer par la vraie logique d'hôte)
+      if (!user?.id) {
+        console.warn('Utilisateur non authentifié, impossible de charger la config template');
+        return;
+      }
+      
       const { data: templateData, error: templateError } = await supabase
         .from('whatsapp_template_config')
         .select('send_welcome_template, welcome_template_name, auto_templates_enabled')
