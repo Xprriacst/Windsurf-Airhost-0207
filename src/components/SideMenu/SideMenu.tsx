@@ -255,13 +255,20 @@ const SideMenu: React.FC = () => {
       
       // Sauvegarder aussi la configuration des templates directement en base
       try {
+        // D'abord récupérer la valeur actuelle de auto_templates_enabled pour ne pas l'écraser
+        const { data: currentConfig } = await supabase
+          .from('whatsapp_template_config')
+          .select('auto_templates_enabled')
+          .eq('host_id', user?.id)
+          .single();
+          
         const { error: templateError } = await supabase
           .from('whatsapp_template_config')
           .upsert({
             host_id: user?.id,
             send_welcome_template: sendWelcomeTemplate,
             welcome_template_name: welcomeTemplateName,
-            auto_templates_enabled: sendWelcomeTemplate,
+            auto_templates_enabled: currentConfig?.auto_templates_enabled ?? false,
             updated_at: new Date().toISOString()
           });
           

@@ -17,10 +17,18 @@ export class WhatsAppService {
     try {
       console.log("[WhatsAppService] v3.1.0 - Récupération configuration WhatsApp avec templates...");
       
-      // Récupérer la configuration de base depuis Supabase
+      // Récupérer l'utilisateur connecté
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        console.error("Utilisateur non authentifié:", authError);
+        return null;
+      }
+      
+      // Récupérer la configuration de base depuis Supabase pour cet utilisateur
       const { data, error } = await supabase
         .from('whatsapp_config')
         .select('*')
+        .eq('host_id', user.id)
         .order('updated_at', { ascending: false })
         .limit(1);
       
@@ -62,10 +70,18 @@ export class WhatsAppService {
     try {
       console.log("[WhatsAppService] v4.0.0 - Sauvegarde avec support templates:", config);
       
+      // Récupérer l'utilisateur connecté
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        console.error("Utilisateur non authentifié:", authError);
+        return false;
+      }
+      
       // Préparer les données de base avec les paramètres de templates
       const dataToSave: any = {
         phone_number_id: config.phone_number_id,
         token: config.token,
+        host_id: user.id,
         updated_at: new Date().toISOString()
       };
       
@@ -100,10 +116,11 @@ export class WhatsAppService {
       
       console.log("Données à sauvegarder en base:", dataToSave);
       
-      // Vérifier s'il y a déjà une configuration
+      // Vérifier s'il y a déjà une configuration pour cet utilisateur
       const { data: existing, error: selectError } = await supabase
         .from('whatsapp_config')
         .select('id')
+        .eq('host_id', user.id)
         .limit(1);
       
       if (selectError) {
