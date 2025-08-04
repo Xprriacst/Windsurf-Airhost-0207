@@ -95,16 +95,6 @@ export class WhatsAppService {
           fallback_message: 'Bienvenue ! Nous reviendrons vers vous rapidement.'
         };
         
-        // Stocker les paramètres de templates dans un champ JSON pour contourner les limitations de schéma
-        const templateSettings = {
-          template_enabled: config.send_welcome_template || false,
-          welcome_template: config.welcome_template_name || '',
-          welcome_message: 'Bienvenue ! Nous reviendrons vers vous rapidement.'
-        };
-        
-        // Utiliser un champ existant pour stocker la configuration JSON des templates
-        dataToSave.config_json = JSON.stringify(templateSettings);
-        
         // Sauvegarder dans localStorage pour persistance
         try {
           localStorage.setItem('whatsapp_template_config', JSON.stringify(this.templateConfig));
