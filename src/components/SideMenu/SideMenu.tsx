@@ -237,8 +237,14 @@ const SideMenu: React.FC = () => {
       console.log("Sauvegarde configuration de base:", configData);
       console.log("Sauvegarde paramètres de templates:", templateSettings);
       
-      // Sauvegarder la configuration de base via le service WhatsApp
-      const success = await WhatsAppService.saveConfig(configData);
+      // Sauvegarder la configuration de base avec les paramètres de templates
+      const fullConfigData = {
+        ...configData,
+        send_welcome_template: sendWelcomeTemplate,
+        welcome_template_name: welcomeTemplateName
+      };
+      
+      const success = await WhatsAppService.saveConfig(fullConfigData);
       
       if (!success) {
         console.error("Erreur lors de la sauvegarde de la configuration WhatsApp");
@@ -247,7 +253,28 @@ const SideMenu: React.FC = () => {
         return;
       }
       
-      // Sauvegarder les paramètres de templates dans localStorage
+      // Sauvegarder aussi la configuration des templates directement en base
+      try {
+        const { error: templateError } = await supabase
+          .from('whatsapp_template_config')
+          .upsert({
+            host_id: user?.id,
+            send_welcome_template: sendWelcomeTemplate,
+            welcome_template_name: welcomeTemplateName,
+            auto_templates_enabled: sendWelcomeTemplate,
+            updated_at: new Date().toISOString()
+          });
+          
+        if (templateError) {
+          console.error("Erreur lors de la sauvegarde des templates:", templateError);
+        } else {
+          console.log("Configuration des templates sauvegardée en base");
+        }
+      } catch (error) {
+        console.warn("Erreur lors de la sauvegarde des templates en base:", error);
+      }
+      
+      // Sauvegarder aussi en localStorage pour le cache
       try {
         localStorage.setItem('whatsapp_template_settings', JSON.stringify(templateSettings));
         console.log("Paramètres de templates sauvegardés dans localStorage");

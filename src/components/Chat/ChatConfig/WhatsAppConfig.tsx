@@ -21,6 +21,7 @@ import {
 } from '@mui/material';
 import { WhatsAppConfig as WhatsAppConfigType } from '../../../services/chat/whatsapp.service';
 import { supabase } from '../../../lib/supabase';
+import { useAuth } from '../../../hooks/useAuth';
 
 interface WhatsAppConfigProps {
   open: boolean;
@@ -28,6 +29,7 @@ interface WhatsAppConfigProps {
 }
 
 export default function WhatsAppConfig({ open, onClose }: WhatsAppConfigProps) {
+  const { user } = useAuth();
   const [phoneNumberId, setPhoneNumberId] = useState('');
   const [whatsappToken, setWhatsappToken] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -86,11 +88,10 @@ export default function WhatsAppConfig({ open, onClose }: WhatsAppConfigProps) {
       
       // Récupérer la configuration des templates depuis la nouvelle table
       // Utiliser l'ID de test pour le moment (à remplacer par la vraie logique d'hôte)
-      const testHostId = 'a2ce1797-a5ab-4c37-9512-4a4058e0f1c7';
       const { data: templateData, error: templateError } = await supabase
         .from('whatsapp_template_config')
         .select('send_welcome_template, welcome_template_name, auto_templates_enabled')
-        .eq('host_id', testHostId)
+        .eq('host_id', user.id)
         .single();
       
       if (templateError && templateError.code !== 'PGRST116') {
@@ -189,10 +190,12 @@ export default function WhatsAppConfig({ open, onClose }: WhatsAppConfigProps) {
       }
       
       // 2. Sauvegarder la configuration des templates
-      // Utiliser l'ID de test pour le moment (à remplacer par la vraie logique d'hôte)
-      const testHostId = 'a2ce1797-a5ab-4c37-9512-4a4058e0f1c7';
+      if (!user?.id) {
+        throw new Error('Utilisateur non authentifié');
+      }
+      
       const templateConfigData = {
-        host_id: testHostId,
+        host_id: user.id,
         send_welcome_template: true, // Toujours true - le template est disponible
         welcome_template_name: selectedTemplate,
         auto_templates_enabled: autoWelcomeEnabled, // Contrôlé par le toggle
@@ -218,7 +221,7 @@ export default function WhatsAppConfig({ open, onClose }: WhatsAppConfigProps) {
       const { data: verifyData, error: verifyError } = await supabase
         .from('whatsapp_template_config')
         .select('auto_templates_enabled, send_welcome_template, welcome_template_name')
-        .eq('host_id', testHostId)
+        .eq('host_id', user.id)
         .single();
       
       if (verifyError) {
@@ -276,9 +279,12 @@ export default function WhatsAppConfig({ open, onClose }: WhatsAppConfigProps) {
       }
       
       // 2. Sauvegarder la configuration des templates avec la NOUVELLE valeur du toggle
-      const testHostId = 'a2ce1797-a5ab-4c37-9512-4a4058e0f1c7';
+      if (!user?.id) {
+        throw new Error('Utilisateur non authentifié');
+      }
+      
       const templateConfigData = {
-        host_id: testHostId,
+        host_id: user.id,
         send_welcome_template: true,
         welcome_template_name: selectedTemplate,
         auto_templates_enabled: newToggleValue, // Utiliser la nouvelle valeur, pas l'état React
@@ -304,7 +310,7 @@ export default function WhatsAppConfig({ open, onClose }: WhatsAppConfigProps) {
       const { data: verifyData, error: verifyError } = await supabase
         .from('whatsapp_template_config')
         .select('auto_templates_enabled, send_welcome_template, welcome_template_name')
-        .eq('host_id', testHostId)
+        .eq('host_id', user.id)
         .single();
       
       if (verifyError) {
