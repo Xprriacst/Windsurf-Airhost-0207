@@ -270,6 +270,8 @@ const SideMenu: React.FC = () => {
             welcome_template_name: welcomeTemplateName,
             auto_templates_enabled: currentConfig?.auto_templates_enabled ?? false,
             updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'host_id'
           });
           
         if (templateError) {
