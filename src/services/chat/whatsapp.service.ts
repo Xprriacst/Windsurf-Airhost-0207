@@ -2,6 +2,7 @@ import { supabase } from '../../lib/supabase';
 
 export interface WhatsAppConfig {
   phone_number_id: string;
+  waba_id?: string;
   token: string;
   auto_welcome_enabled?: boolean;
   welcome_template?: string;
