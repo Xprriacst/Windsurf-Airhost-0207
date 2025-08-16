@@ -122,6 +122,7 @@ export default function WhatsAppConfig({ open, onClose }: WhatsAppConfigProps) {
       // Templates prédéfinis communs pour les locations courte durée
       const defaultTemplates = [
         'hello_world',
+        'bienvenue',
         'welcome_checkin',
         'welcome_booking_confirmation',
         'welcome_property_info',
@@ -140,6 +141,7 @@ export default function WhatsAppConfig({ open, onClose }: WhatsAppConfigProps) {
   const getTemplateDisplayName = (templateName: string): string => {
     const templateNames: Record<string, string> = {
       'hello_world': 'Bonjour monde (par défaut)',
+      'bienvenue': 'Bienvenue (FR - Blois)',
       'welcome_checkin': 'Bienvenue et instructions d\'arrivée',
       'welcome_booking_confirmation': 'Confirmation de réservation',
       'welcome_property_info': 'Informations sur la propriété',
